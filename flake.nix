@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -10,13 +11,14 @@
     {
       self,
       nixpkgs,
+      rust-overlay,
       flake-utils,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        overlays = [ ];
+        overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
@@ -30,10 +32,11 @@
             pkg-config
             eza
             fd
-            cargo
-            rustc
-            rustup
+            rust-bin.stable.latest.default
             rust-analyzer
+            # cargo-watch
+            # pkgs.sqlite
+            # pkgs.bunyan-rs
             pkgs.zsh
           ];
 
