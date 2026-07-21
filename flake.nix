@@ -38,6 +38,7 @@
             # pkgs.sqlite
             # pkgs.bunyan-rs
             pkgs.zsh
+            pkgs.cmake # pingora
           ];
 
           shellHook = ''

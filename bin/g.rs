@@ -11,7 +11,7 @@ struct Args {
     /// Transport mechanism
     #[arg(value_enum)]
     transport_type: TransportType,
-    // Domain to hit
+    /// Domain to hit
     #[arg(short, help = "Pass `-d` and you'll see me!")]
     domain: String,
 }

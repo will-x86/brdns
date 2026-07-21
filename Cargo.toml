@@ -12,22 +12,23 @@ path = "lib/mod.rs"
 name = "g"
 path = "bin/g.rs"
 
+
+[[bin]]
+name = "s"
+path = "bin/s.rs"
+
 [dependencies]
 async-trait = "0.1.89"
 base64 = "0.22.1"
+log = "0.4"
 clap = { version = "4.6.2", features = ["derive"] }
 reqwest = { version = "0.13.4", features = ["query"]}
+pingora = { version = "0.8.0", features = ["openssl", "lb"] }
+
 rustls = "0.23.42"
 tokio = { version = "1.53.0", features = ["full"] }
 tokio-rustls = "0.26.4"
 webpki-roots = "1.0.9"
-# For DNS over TLS
-#rustls = "0.23"
-#webpki-roots = "0.26"
-
-# For DNS over HTTPS
-#reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
-#base64 = "0.22"
-
-# For async (DoT/DoH benefit from this)
-#tokio = { version = "1", features = ["full"] }
+bytes = "1.12.1"
+pingora-proxy = "0.8.1"
+http = "1.4.2"
