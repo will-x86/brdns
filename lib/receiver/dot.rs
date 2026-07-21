@@ -10,18 +10,16 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::transport::{DotTransport, Transport};
 
 // We terminate TLS with our own cert (pingora does the handshake via add_tls),
-// so the DNS payload is plaintext in `process_new` and can be inspected before
-// being forwarded upstream over our own DoT connection to Cloudflare.
+// so the DNS payload is plaintext in `process_new`
 const CERT_PATH: &str = "certs/cert.pem";
 const KEY_PATH: &str = "certs/key.pem";
 const LISTEN_ADDR: &str = "0.0.0.0:8853";
 
-// Upstream resolver we forward decrypted queries to.
-const UPSTREAM_HOST: &str = "cloudflare-dns.com";
+// Who we forward to
+const UPSTREAM_HOST: &str = "1.1.1.1";
 
 /// pingora app that speaks the DoT wire protocol on an already-TLS-terminated
 /// stream: a 2-byte big-endian length prefix followed by the DNS message
-/// (RFC 7858 §3.3).
 struct DotApp {
     upstream: Arc<DotTransport>,
 }

@@ -39,6 +39,7 @@
             # pkgs.bunyan-rs
             pkgs.zsh
             pkgs.cmake # pingora
+            pkgs.knot-dns
           ];
 
           shellHook = ''
