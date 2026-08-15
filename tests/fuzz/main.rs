@@ -1,3 +1,5 @@
+#![cfg(feature = "fuzz")]
+
 use brdns::buffer::BytePacketBuffer;
 use brdns::protocol::header::DnsHeader;
 use brdns::protocol::packet::DnsPacket;

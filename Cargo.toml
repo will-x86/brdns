@@ -36,6 +36,9 @@ bytes = "1.12.1"
 pingora-proxy = "0.8.1"
 http = "1.4.2"
 
+[features]
+fuzz = ["dep:fuzztest"]
+
 [dev-dependencies]
-fuzztest = { path = "fuzztest/rust" }
+fuzztest = { path = "fuzztest/rust", optional = true }
 googletest = "0.14.3"
