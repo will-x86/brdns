@@ -1,5 +1,5 @@
 {
-  description = "Basic rust flake :)";
+  description = "BRDNs rust flake :)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -9,7 +9,6 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       rust-overlay,
       flake-utils,
@@ -45,11 +44,9 @@
               ];
             })
             rust-analyzer
-            # cargo-watch
-            # pkgs.sqlite
-            # pkgs.bunyan-rs
+            cargo-watch
             pkgs.zsh
-            pkgs.cmake # pingora
+            pkgs.cmake # pingora dependancy
             pkgs.knot-dns
             pkgs.bazel_8
           ];
