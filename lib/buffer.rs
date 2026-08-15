@@ -38,6 +38,10 @@ impl BytePacketBuffer {
         self.pos
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.pos == 0
+    }
+
     pub fn step(&mut self, steps: usize) -> Result<()> {
         self.pos += steps;
         Ok(())
@@ -80,7 +84,7 @@ impl BytePacketBuffer {
         let res = ((self.read()? as u32) << 24)
             | ((self.read()? as u32) << 16)
             | ((self.read()? as u32) << 8)
-            | ((self.read()? as u32) << 0);
+            | (self.read()? as u32);
         Ok(res)
     }
 
@@ -152,7 +156,7 @@ impl BytePacketBuffer {
         self.write(((val >> 24) & 0xFF) as u8)?;
         self.write(((val >> 16) & 0xFF) as u8)?;
         self.write(((val >> 8) & 0xFF) as u8)?;
-        self.write(((val >> 0) & 0xFF) as u8)
+        self.write((val & 0xFF) as u8)
     }
 
     pub fn write_qname(&mut self, qname: &str) -> Result<()> {
@@ -172,6 +176,12 @@ impl BytePacketBuffer {
     /// Get the written portion of the buffer
     pub fn as_bytes(&self) -> &[u8] {
         &self.buf[..self.pos]
+    }
+}
+
+impl Default for BytePacketBuffer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

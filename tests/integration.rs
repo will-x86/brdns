@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use brdns::buffer::BytePacketBuffer;
+use brdns::config::Settings;
 use brdns::protocol::packet::DnsPacket;
 use brdns::protocol::question::DnsQuestion;
 use brdns::protocol::record::QueryType;
@@ -11,10 +12,10 @@ use rustls::{ClientConfig, DigitallySignedStruct, SignatureScheme};
 use tokio::net::TcpListener;
 use tokio_rustls::TlsConnector;
 
-#[path = "integration/dot/mod.rs"]
-mod dot;
 #[path = "integration/doh/mod.rs"]
 mod doh;
+#[path = "integration/dot/mod.rs"]
+mod dot;
 
 async fn pick_port() -> u16 {
     let l = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -131,8 +132,12 @@ pub struct DotServer {
 }
 
 impl DotServer {
-    pub async fn start() -> Self {
-        let port = spawn_server(|p| Box::new(DotReceiver::new(p))).await;
+    pub async fn start(settings: Option<&Settings>) -> Self {
+        let settings = settings.cloned().unwrap_or_default();
+        let port = spawn_server(move |p| {
+            Box::new(DotReceiver::from_config(p, settings.dot, settings.certs))
+        })
+        .await;
         wait_for_port(port).await;
         Self { port }
     }
@@ -169,8 +174,9 @@ pub struct DohServer {
 }
 
 impl DohServer {
-    pub async fn start() -> Self {
-        let port = spawn_server(|p| Box::new(DohReceiver::new(p))).await;
+    pub async fn start(settings: Option<&Settings>) -> Self {
+        let settings = settings.cloned().unwrap_or_default();
+        let port = spawn_server(move |p| Box::new(DohReceiver::from_config(p, settings.doh))).await;
         wait_for_port(port).await;
         Self { port }
     }
@@ -182,8 +188,7 @@ impl DohServer {
     ) -> Result<DnsPacket, Box<dyn std::error::Error + Send + Sync>> {
         let q = build_query(domain, qtype);
         let client = reqwest::Client::new();
-        let encoded =
-            base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, &q);
+        let encoded = base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, &q);
         let url = format!("http://127.0.0.1:{}/dns-query", self.port);
 
         let bytes = client

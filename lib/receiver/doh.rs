@@ -6,30 +6,16 @@ use pingora::{
     server::Server,
     upstreams::peer::HttpPeer,
 };
-/*
- * Do we implement the dns over https spec here ?
- * Aka /dns-query?dns=... on applcations/dns-message
- * + post req's
- * + json spec ...
- */
-/// Cloudflare DoH endpoint.
-const UPSTREAM_HOST: &str = "cloudflare-dns.com";
-const UPSTREAM_ADDR: &str = "1.1.1.1:443";
-
-/// Default port for DoH
-pub const DEFAULT_DOH_PORT: u16 = 6188;
 
 pub struct DohReceiver {
-    addr: std::net::SocketAddr,
     port: u16,
+    doh: crate::config::DohConfig,
 }
 
 #[async_trait]
 impl ProxyHttp for DohReceiver {
     type CTX = ();
-    fn new_ctx(&self) -> () {
-        ()
-    }
+    fn new_ctx(&self) {}
     async fn request_filter(&self, _session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool> {
         /*
         if session.req_header().uri.path().starts_with("/login")
@@ -45,8 +31,12 @@ impl ProxyHttp for DohReceiver {
     }
 
     async fn upstream_peer(&self, _session: &mut Session, _ctx: &mut ()) -> Result<Box<HttpPeer>> {
-        // UPSTREAM_HOST is the SNI here
-        let peer = Box::new(HttpPeer::new(self.addr, true, UPSTREAM_HOST.to_owned()));
+        let addr: std::net::SocketAddr = self
+            .doh
+            .upstream_addr
+            .parse()
+            .expect("invalid upstream_addr");
+        let peer = Box::new(HttpPeer::new(addr, true, self.doh.upstream_host.clone()));
         Ok(peer)
     }
 
@@ -58,7 +48,7 @@ impl ProxyHttp for DohReceiver {
     ) -> Result<()> {
         // The upstream expects its own hostname in the Host header, not ours.
         upstream_request
-            .insert_header("Host", UPSTREAM_HOST)
+            .insert_header("Host", &self.doh.upstream_host)
             .unwrap();
         Ok(())
     }
@@ -86,11 +76,15 @@ impl super::Receiver for DohReceiver {
 }
 
 impl DohReceiver {
+    /// Convenience: defaults for everything except the listen port.
     pub fn new(port: u16) -> Self {
-        Self {
-            addr: UPSTREAM_ADDR.parse().unwrap(),
-            port,
-        }
+        let defaults = crate::config::Settings::default();
+        Self::from_config(port, defaults.doh)
+    }
+
+    /// Full control via config struct.
+    pub fn from_config(port: u16, doh: crate::config::DohConfig) -> Self {
+        Self { port, doh }
     }
 
     /// Port this receiver is configured to listen on.

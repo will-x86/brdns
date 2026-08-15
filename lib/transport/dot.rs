@@ -31,6 +31,12 @@ impl DotTransport {
             connector: TlsConnector::from(Arc::new(config)),
         })
     }
+
+    pub fn from_config(
+        c: &crate::config::DotConfig,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Self::new(&c.upstream_host, Some(c.upstream_port))
+    }
 }
 
 #[async_trait]

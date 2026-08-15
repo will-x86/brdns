@@ -53,6 +53,12 @@ pub struct DnsHeader {
     pub resource_entries: u16,
 }
 
+impl Default for DnsHeader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DnsHeader {
     pub fn new() -> Self {
         Self {

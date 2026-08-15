@@ -97,14 +97,14 @@ impl DnsRecord {
                     ((raw_addr >> 24) & 0xFF) as u8,
                     ((raw_addr >> 16) & 0xFF) as u8,
                     ((raw_addr >> 8) & 0xFF) as u8,
-                    ((raw_addr >> 0) & 0xFF) as u8,
+                    (raw_addr & 0xFF) as u8,
                 );
                 Ok(Self::A { domain, addr, ttl })
             }
             QueryType::AAAA => {
                 let mut octets = [0u8; 16];
-                for i in 0..16 {
-                    octets[i] = buffer.read()?;
+                for octet in &mut octets {
+                    *octet = buffer.read()?;
                 }
                 Ok(Self::AAAA {
                     domain,

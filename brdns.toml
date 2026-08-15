@@ -1,0 +1,19 @@
+# brdns configuration - all keys optional, defaults shown
+
+# [dot]
+# listen_port = 8853
+# upstream_host = "1.1.1.1"
+# upstream_port = 853
+
+# [doh]
+# listen_port = 6188
+# upstream_host = "cloudflare-dns.com"
+# upstream_addr = "1.1.1.1:443"
+
+# [udp]
+# server = "8.8.8.8"
+# port = 53
+
+# [certs]
+# cert_path = "certs/cert.pem"
+# key_path = "certs/key.pem"

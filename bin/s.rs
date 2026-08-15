@@ -1,4 +1,4 @@
-use brdns::receiver::{DohReceiver, DotReceiver, Receiver, DEFAULT_DOH_PORT, DEFAULT_DOT_PORT};
+use brdns::receiver::{DohReceiver, DotReceiver, Receiver};
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -11,17 +11,25 @@ struct Args {
 #[derive(clap::ValueEnum, Debug, Clone)]
 enum ReceiverType {
     //UDP,
-    DOT,
-    DOH,
+    Dot,
+    Doh,
 }
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Args::parse();
+    let settings = brdns::config::load();
 
     let receiver: Box<dyn Receiver> = match args.receiver_type {
-        ReceiverType::DOH => Box::new(DohReceiver::new(DEFAULT_DOH_PORT)),
-        ReceiverType::DOT => Box::new(DotReceiver::new(DEFAULT_DOT_PORT)),
+        ReceiverType::Doh => Box::new(DohReceiver::from_config(
+            settings.doh.listen_port,
+            settings.doh,
+        )),
+        ReceiverType::Dot => Box::new(DotReceiver::from_config(
+            settings.dot.listen_port,
+            settings.dot,
+            settings.certs,
+        )),
     };
     receiver.run().await;
-    todo!();
+    Ok(())
 }

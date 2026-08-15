@@ -14,6 +14,10 @@ impl UdpTransport {
             port,
         }
     }
+
+    pub fn from_config(c: &crate::config::UdpConfig) -> Self {
+        Self::new(&c.server, c.port)
+    }
 }
 
 #[async_trait]

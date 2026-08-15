@@ -9,16 +9,6 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::transport::{DotTransport, Transport};
 
-// We terminate TLS with our own cert (pingora does the handshake via add_tls),
-// so the DNS payload is plaintext in `process_new`
-const CERT_PATH: &str = "certs/cert.pem";
-const KEY_PATH: &str = "certs/key.pem";
-
-pub const DEFAULT_DOT_PORT: u16 = 8853;
-
-// Who we forward to
-const UPSTREAM_HOST: &str = "1.1.1.1";
-
 /// pingora app that speaks the DoT wire protocol on an already-TLS-terminated
 /// stream: a 2-byte big-endian length prefix followed by the DNS message
 struct DotApp {
@@ -75,11 +65,24 @@ impl ServerApp for DotApp {
 
 pub struct DotReceiver {
     port: u16,
+    dot: crate::config::DotConfig,
+    certs: crate::config::CertsConfig,
 }
 
 impl DotReceiver {
+    /// Convenience: defaults for everything except the listen port.
     pub fn new(port: u16) -> Self {
-        Self { port }
+        let defaults = crate::config::Settings::default();
+        Self::from_config(port, defaults.dot, defaults.certs)
+    }
+
+    /// Full control via config structs.
+    pub fn from_config(
+        port: u16,
+        dot: crate::config::DotConfig,
+        certs: crate::config::CertsConfig,
+    ) -> Self {
+        Self { port, dot, certs }
     }
 
     /// Port this receiver is configured to listen on.
@@ -94,9 +97,13 @@ impl super::Receiver for DotReceiver {
         // pingora's run_forever blocks its thread and manages its own runtimes,
         // so it has to live on a blocking thread to stay awaitable.
         let port = self.port;
+        let cert_path = self.certs.cert_path.to_string_lossy().into_owned();
+        let key_path = self.certs.key_path.to_string_lossy().into_owned();
+        let upstream_host = self.dot.upstream_host.clone();
+        let upstream_port = self.dot.upstream_port;
         tokio::task::spawn_blocking(move || {
             let upstream = Arc::new(
-                DotTransport::new(UPSTREAM_HOST, None)
+                DotTransport::new(&upstream_host, Some(upstream_port))
                     .expect("failed to build upstream DoT transport"),
             );
 
@@ -106,7 +113,7 @@ impl super::Receiver for DotReceiver {
             let listen_addr = format!("0.0.0.0:{port}");
             let mut service = Service::new("dot".to_owned(), DotApp { upstream });
             service
-                .add_tls(&listen_addr, CERT_PATH, KEY_PATH)
+                .add_tls(&listen_addr, &cert_path, &key_path)
                 .expect("failed to load DoT server certificate/key");
 
             my_server.add_service(service);
@@ -116,4 +123,3 @@ impl super::Receiver for DotReceiver {
         .unwrap();
     }
 }
-

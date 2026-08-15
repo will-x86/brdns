@@ -7,6 +7,4 @@ pub trait Receiver {
     async fn run(self: Box<Self>);
 }
 pub use doh::DohReceiver;
-pub use doh::DEFAULT_DOH_PORT;
 pub use dot::DotReceiver;
-pub use dot::DEFAULT_DOT_PORT;

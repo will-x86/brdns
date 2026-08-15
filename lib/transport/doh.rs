@@ -15,13 +15,8 @@ impl DohTransport {
         }
     }
 
-    /// Create with a well-known DoH server
-    pub fn cloudflare() -> Self {
-        Self::new("https://cloudflare-dns.com/dns-query")
-    }
-
-    pub fn google() -> Self {
-        Self::new("https://dns.google/dns-query")
+    pub fn from_config(c: &crate::config::DohConfig) -> Self {
+        Self::new(format!("https://{}/dns-query", c.upstream_host))
     }
 }
 

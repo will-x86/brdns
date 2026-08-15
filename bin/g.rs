@@ -1,4 +1,5 @@
 use brdns::buffer::BytePacketBuffer;
+use brdns::config;
 use brdns::protocol::packet::DnsPacket;
 use brdns::protocol::question::DnsQuestion;
 use brdns::protocol::record::QueryType;
@@ -17,13 +18,14 @@ struct Args {
 }
 #[derive(clap::ValueEnum, Debug, Clone)]
 enum TransportType {
-    UDP,
-    DOT,
-    DOH,
+    Udp,
+    Dot,
+    Doh,
 }
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Args::parse();
+    let settings = config::load();
 
     // Build query
     let mut packet = DnsPacket::new();
@@ -39,9 +41,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Select transport
     let transport: Box<dyn Transport> = match args.transport_type {
-        TransportType::UDP => Box::new(UdpTransport::new("8.8.8.8", 53)),
-        TransportType::DOT => Box::new(DotTransport::new("dns.google", None)?),
-        TransportType::DOH => Box::new(DohTransport::cloudflare()),
+        TransportType::Udp => Box::new(UdpTransport::from_config(&settings.udp)),
+        TransportType::Dot => Box::new(DotTransport::from_config(&settings.dot)?),
+        TransportType::Doh => Box::new(DohTransport::from_config(&settings.doh)),
     };
     println!("Querying {} via {}", args.domain, transport.name());
 
