@@ -27,8 +27,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         ReceiverType::Dot => Box::new(DotReceiver::from_config(
             settings.dot.listen_port,
             settings.dot,
-            settings.certs,
-        )),
+            &settings.certs,
+        )?),
     };
     receiver.run().await;
     Ok(())

@@ -70,15 +70,52 @@ impl Default for UdpConfig {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct CertsConfig {
-    pub cert_path: PathBuf,
-    pub key_path: PathBuf,
+    /// Paths to existing cert/key files. If both provided, load from disk.
+    /// If None, auto-generate using `gen` parameters.
+    pub cert_path: Option<PathBuf>,
+    pub key_path: Option<PathBuf>,
+
+    /// When true, generated certs are not written to disk (zero IO).
+    /// Default: false.
+    pub in_mem: bool,
+
+    /// Generation parameters; used only when cert_path/key_path are None.
+    #[serde(default)]
+    pub generate: CertGenConfig,
 }
 
 impl Default for CertsConfig {
     fn default() -> Self {
         Self {
-            cert_path: "certs/cert.pem".into(),
-            key_path: "certs/key.pem".into(),
+            cert_path: None,
+            key_path: None,
+            in_mem: false,
+            generate: CertGenConfig::default(),
+        }
+    }
+}
+
+/// Parameters for auto-generating a self-signed certificate.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
+pub struct CertGenConfig {
+    /// Subject common name. Default: "localhost".
+    pub subject_cn: String,
+    /// Subject alternative names (DNS:..., IP:...). Default: DNS:localhost, IP:127.0.0.1.
+    pub subject_alt_names: Vec<String>,
+    /// Validity in days. Default: 365.
+    pub days: u32,
+    /// RSA key size in bits. Default: 2048.
+    pub key_bits: u32,
+}
+
+impl Default for CertGenConfig {
+    fn default() -> Self {
+        Self {
+            subject_cn: "localhost".into(),
+            subject_alt_names: vec!["DNS:localhost".into(), "IP:127.0.0.1".into()],
+            days: 365,
+            key_bits: 2048,
         }
     }
 }

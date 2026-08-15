@@ -7,7 +7,7 @@ wdot:
 	cargo watch -x "run --bin s dot"
 
 wdoh:
-	cargo watch -x "run --bin s dos"
+	cargo watch -x "run --bin s doh"
 
 test-integration:
 	cargo test --test integration -- --nocapture

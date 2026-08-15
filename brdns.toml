@@ -15,5 +15,17 @@
 # port = 53
 
 # [certs]
+# If cert_path/key_path are not set, a self-signed cert is auto-generated.
+# Set these to use existing pem files instead.
 # cert_path = "certs/cert.pem"
 # key_path = "certs/key.pem"
+#
+# Keep generated certs in memory (no disk IO). Default: false.
+# in_mem = false
+in_mem = true
+#
+# [certs.generate]
+# subject_cn = "localhost"
+# subject_alt_names = ["DNS:localhost", "IP:127.0.0.1"]
+# days = 365
+# key_bits = 2048

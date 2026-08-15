@@ -7,6 +7,7 @@ use pingora::server::{Server, ShutdownWatch};
 use pingora::services::listening::Service;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+use crate::certs::GeneratedCerts;
 use crate::transport::{DotTransport, Transport};
 
 /// pingora app that speaks the DoT wire protocol on an already-TLS-terminated
@@ -43,7 +44,7 @@ impl ServerApp for DotApp {
                 return None;
             }
 
-            // `query` is the decrypted DNS message — inspect or rewrite it here.
+            // `query` is the decrypted DNS message
             let response = match self.upstream.send_recv(&query).await {
                 Ok(r) => r,
                 Err(e) => {
@@ -66,23 +67,29 @@ impl ServerApp for DotApp {
 pub struct DotReceiver {
     port: u16,
     dot: crate::config::DotConfig,
-    certs: crate::config::CertsConfig,
+    certs: Arc<GeneratedCerts>,
 }
 
 impl DotReceiver {
     /// Convenience: defaults for everything except the listen port.
     pub fn new(port: u16) -> Self {
         let defaults = crate::config::Settings::default();
-        Self::from_config(port, defaults.dot, defaults.certs)
+        Self::from_config(port, defaults.dot, &defaults.certs)
+            .expect("failed to load/generate certs")
     }
 
-    /// Full control via config structs.
+    /// DotReceiver from config
     pub fn from_config(
         port: u16,
         dot: crate::config::DotConfig,
-        certs: crate::config::CertsConfig,
-    ) -> Self {
-        Self { port, dot, certs }
+        certs: &crate::config::CertsConfig,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let generated = crate::certs::load_or_generate(certs)?;
+        Ok(Self {
+            port,
+            dot,
+            certs: Arc::new(generated),
+        })
     }
 
     /// Port this receiver is configured to listen on.
@@ -97,8 +104,7 @@ impl super::Receiver for DotReceiver {
         // pingora's run_forever blocks its thread and manages its own runtimes,
         // so it has to live on a blocking thread to stay awaitable.
         let port = self.port;
-        let cert_path = self.certs.cert_path.to_string_lossy().into_owned();
-        let key_path = self.certs.key_path.to_string_lossy().into_owned();
+        let certs = Arc::clone(&self.certs);
         let upstream_host = self.dot.upstream_host.clone();
         let upstream_port = self.dot.upstream_port;
         tokio::task::spawn_blocking(move || {
@@ -112,9 +118,10 @@ impl super::Receiver for DotReceiver {
 
             let listen_addr = format!("0.0.0.0:{port}");
             let mut service = Service::new("dot".to_owned(), DotApp { upstream });
-            service
-                .add_tls(&listen_addr, &cert_path, &key_path)
-                .expect("failed to load DoT server certificate/key");
+            let tls_settings = certs
+                .tls_settings()
+                .expect("failed to build TLS settings from cert/key");
+            service.add_tls_with_settings(&listen_addr, None, tls_settings);
 
             my_server.add_service(service);
             my_server.run_forever();

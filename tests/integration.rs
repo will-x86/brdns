@@ -133,9 +133,10 @@ pub struct DotServer {
 
 impl DotServer {
     pub async fn start(settings: Option<&Settings>) -> Self {
-        let settings = settings.cloned().unwrap_or_default();
+        let mut settings = settings.cloned().unwrap_or_default();
+        settings.certs.in_mem = true; // tests use in-memory certs
         let port = spawn_server(move |p| {
-            Box::new(DotReceiver::from_config(p, settings.dot, settings.certs))
+            Box::new(DotReceiver::from_config(p, settings.dot, &settings.certs).unwrap())
         })
         .await;
         wait_for_port(port).await;
