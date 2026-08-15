@@ -13,7 +13,8 @@ use crate::transport::{DotTransport, Transport};
 // so the DNS payload is plaintext in `process_new`
 const CERT_PATH: &str = "certs/cert.pem";
 const KEY_PATH: &str = "certs/key.pem";
-const LISTEN_ADDR: &str = "0.0.0.0:8853";
+
+pub const DEFAULT_DOT_PORT: u16 = 8853;
 
 // Who we forward to
 const UPSTREAM_HOST: &str = "1.1.1.1";
@@ -72,11 +73,18 @@ impl ServerApp for DotApp {
     }
 }
 
-pub struct DotReceiver;
+pub struct DotReceiver {
+    port: u16,
+}
 
 impl DotReceiver {
-    pub fn new() -> Self {
-        Self
+    pub fn new(port: u16) -> Self {
+        Self { port }
+    }
+
+    /// Port this receiver is configured to listen on.
+    pub fn port(&self) -> u16 {
+        self.port
     }
 }
 
@@ -85,6 +93,7 @@ impl super::Receiver for DotReceiver {
     async fn run(self: Box<Self>) {
         // pingora's run_forever blocks its thread and manages its own runtimes,
         // so it has to live on a blocking thread to stay awaitable.
+        let port = self.port;
         tokio::task::spawn_blocking(move || {
             let upstream = Arc::new(
                 DotTransport::new(UPSTREAM_HOST, None)
@@ -94,9 +103,10 @@ impl super::Receiver for DotReceiver {
             let mut my_server = Server::new(None).unwrap();
             my_server.bootstrap();
 
+            let listen_addr = format!("0.0.0.0:{port}");
             let mut service = Service::new("dot".to_owned(), DotApp { upstream });
             service
-                .add_tls(LISTEN_ADDR, CERT_PATH, KEY_PATH)
+                .add_tls(&listen_addr, CERT_PATH, KEY_PATH)
                 .expect("failed to load DoT server certificate/key");
 
             my_server.add_service(service);
@@ -106,3 +116,4 @@ impl super::Receiver for DotReceiver {
         .unwrap();
     }
 }
+

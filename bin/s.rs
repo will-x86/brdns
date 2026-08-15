@@ -1,4 +1,4 @@
-use brdns::receiver::{DohReceiver, DotReceiver, Receiver};
+use brdns::receiver::{DohReceiver, DotReceiver, Receiver, DEFAULT_DOH_PORT, DEFAULT_DOT_PORT};
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -19,8 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Args::parse();
 
     let receiver: Box<dyn Receiver> = match args.receiver_type {
-        ReceiverType::DOH => Box::new(DohReceiver::new()),
-        ReceiverType::DOT => Box::new(DotReceiver::new()),
+        ReceiverType::DOH => Box::new(DohReceiver::new(DEFAULT_DOH_PORT)),
+        ReceiverType::DOT => Box::new(DotReceiver::new(DEFAULT_DOT_PORT)),
     };
     receiver.run().await;
     todo!();

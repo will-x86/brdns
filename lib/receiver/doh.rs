@@ -15,10 +15,13 @@ use pingora::{
 /// Cloudflare DoH endpoint.
 const UPSTREAM_HOST: &str = "cloudflare-dns.com";
 const UPSTREAM_ADDR: &str = "1.1.1.1:443";
-const LISTEN_ADDR: &str = "0.0.0.0:6188";
+
+/// Default port for DoH
+pub const DEFAULT_DOH_PORT: u16 = 6188;
 
 pub struct DohReceiver {
     addr: std::net::SocketAddr,
+    port: u16,
 }
 
 #[async_trait]
@@ -70,8 +73,9 @@ impl super::Receiver for DohReceiver {
             let mut my_server = Server::new(None).unwrap();
             my_server.bootstrap();
 
+            let listen_addr = format!("0.0.0.0:{}", self.port);
             let mut proxy = http_proxy_service(&my_server.configuration, *self);
-            proxy.add_tcp(LISTEN_ADDR);
+            proxy.add_tcp(&listen_addr);
 
             my_server.add_service(proxy);
             my_server.run_forever();
@@ -82,9 +86,15 @@ impl super::Receiver for DohReceiver {
 }
 
 impl DohReceiver {
-    pub fn new() -> Self {
+    pub fn new(port: u16) -> Self {
         Self {
             addr: UPSTREAM_ADDR.parse().unwrap(),
+            port,
         }
+    }
+
+    /// Port this receiver is configured to listen on.
+    pub fn port(&self) -> u16 {
+        self.port
     }
 }

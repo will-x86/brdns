@@ -43,7 +43,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         TransportType::DOT => Box::new(DotTransport::new("dns.google", None)?),
         TransportType::DOH => Box::new(DohTransport::cloudflare()),
     };
-
     println!("Querying {} via {}", args.domain, transport.name());
 
     // Send and receive
