@@ -43,5 +43,6 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Run cargo clippy
-        # --lib --bins avoids building dev/test targets that depend on fuzztest + centipede
-        run: cargo clippy --lib --bins --all-features -- -D warnings
+        # --lib --bins avoids building dev/test targets. No --all-features since the fuzz feature
+        # pulls in fuzztest + centipede, which isn't available in this job.
+        run: cargo clippy --lib --bins -- -D warnings
