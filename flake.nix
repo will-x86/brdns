@@ -26,13 +26,24 @@
       with pkgs;
       {
         devShells.default = mkShell {
-          LD_LIBRARY_PATH = lib.makeLibraryPath [ openssl ];
+          LD_LIBRARY_PATH = lib.makeLibraryPath [
+            openssl
+            gcc
+            clang
+          ];
           buildInputs = [
             openssl
             pkg-config
+            gcc
+            clang
             eza
             fd
-            rust-bin.stable.latest.default
+            (rust-bin.nightly.latest.default.override {
+              extensions = [
+                "rust-src"
+                "llvm-tools"
+              ];
+            })
             rust-analyzer
             # cargo-watch
             # pkgs.sqlite
@@ -40,12 +51,19 @@
             pkgs.zsh
             pkgs.cmake # pingora
             pkgs.knot-dns
+            pkgs.bazel_8
           ];
 
           shellHook = ''
             alias ls=eza
-            export PATH=$PATH:${pkgs.rust-analyzer}/bin
             alias find=fd
+            export FUZZTEST_LIB_PATH="$PWD/fuzztest/bazel-bin/centipede"
+            export FUZZTEST_CENTIPEDE_BINARY_PATH="$PWD/fuzztest/bazel-bin/centipede/centipede"
+
+            if { [ ! -f "$FUZZTEST_LIB_PATH/libcentipede_engine_static.a" ] || [ ! -f "$FUZZTEST_CENTIPEDE_BINARY_PATH" ]; } && [ -f "$PWD/fuzztest/centipede/BUILD" ]; then
+              echo "building centipede (one-time bazel build)"
+              (cd "$PWD/fuzztest" && bazel build //centipede:centipede_engine_static //centipede:centipede)
+            fi
           '';
         };
       }
