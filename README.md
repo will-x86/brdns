@@ -4,8 +4,8 @@ Encrypted DNS proxy and query tool in Rust.
 
 ## What it does
 
-- **`s` (Server) ** — DNS-over-TLS (DoT) and DNS-over-HTTPS (DoH) forwarding proxy. Listens for encrypted DNS queries and relays them to an upstream resolver. Built on [pingora](https://github.com/cloudflare/pingora).
-- **`g` (Client for req) ** — DNS query client supporting UDP, DoT, and DoH transports.
+- `s` (Server) — DNS-over-TLS (DoT) and DNS-over-HTTPS (DoH) forwarding proxy. Listens for encrypted DNS queries and relays them to an upstream resolver. Built on [pingora](https://github.com/cloudflare/pingora).
+- `g` (Client for req) — DNS query client supporting UDP, DoT, and DoH transports.
 
 ## Quick start
 
@@ -43,5 +43,5 @@ port = 53
 in_mem = true      # keep auto-generated certs in memory
 ```
 
-Self-signed certs are auto-generated on startup (RSA 2048-bit, SAN: localhost/127.0.0.1). Or supply your own via `cert_path`/`key_path`.
+Self-signed certs are auto-generated on startup
 
