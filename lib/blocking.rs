@@ -1,4 +1,4 @@
-//! Block/limit response synthesis.
+//! Block/limit responses.
 //!
 //! `deny` rules and over-quota `limit` rules answer with a synthesized DNS
 //! response. The mode is configurable:

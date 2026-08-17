@@ -1,4 +1,4 @@
-//! Integration tests for the control-plane management API (Noop backend).
+//! Integration tests for the control-plane management API (in-memory backend).
 
 use std::sync::Arc;
 
@@ -13,9 +13,7 @@ async fn spawn_api() -> String {
 }
 
 async fn spawn_api_with_token(token: Option<String>) -> String {
-    let cp = controlplane::build(None)
-        .await
-        .expect("build control plane");
+    let cp = controlplane::init(None).await.expect("build control plane");
     let state = Arc::new(http::ApiState { cp, token });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await

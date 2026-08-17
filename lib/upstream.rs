@@ -1,9 +1,8 @@
 //! Pooled, deduped DNS upstream transports.
 //!
-//! Many accounts can share the same resolver; the pool builds one transport
-//! per distinct `(protocol, host, port, addr)` tuple and reuses it, so a
-//! 4-friend deployment holds a handful of connections instead of one per
-//! account (or per query).
+//! Many accounts can share the same resolver
+//! Pool builds one transport
+//! per distinct `(protocol, host, port, addr)` tuple and reuses it
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -49,7 +48,7 @@ impl UpstreamPool {
         transport
     }
 
-    /// Number of distinct transports currently cached.
+    /// Num of distinct transports currently cached.
     pub fn len(&self) -> usize {
         self.cache.lock().expect("poisoned").len()
     }
@@ -59,7 +58,7 @@ impl UpstreamPool {
     }
 }
 
-/// Build a transport for an upstream record.
+/// Build for upstream record.
 pub fn build_transport(upstream: &Upstream) -> Arc<dyn Transport> {
     match upstream.protocol {
         UpstreamProtocol::Dot => Arc::new(

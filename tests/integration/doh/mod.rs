@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::DohServer;
-use brdns::controlplane::{ControlPlane, NoopControlPlane};
+use brdns::controlplane::{ControlPlane, InMemControlPlane};
 use brdns::model::{Action, NewRule, TargetType};
 use brdns::protocol::header::ResultCode;
 use brdns::protocol::record::QueryType;
@@ -25,7 +25,7 @@ async fn echoes_question() {
 
 #[tokio::test]
 async fn deny_rule_synthesizes_nxdomain() {
-    let cp = NoopControlPlane::default();
+    let cp = InMemControlPlane::default();
     cp.create_account("default").await.unwrap();
     cp.replace_rules(
         "default",

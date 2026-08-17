@@ -1,12 +1,12 @@
-//! The shared query pipeline (the "one brain").
+//! The query pipeline
 //!
 //! Both the DoT and DoH entry points call [`Pipeline::handle_query`] with the
 //! caller's account and the raw DNS query bytes. The pipeline:
 //!
 //! 1. Parses the query name.
 //! 2. Loads the account's rules from the control plane and evaluates them.
-//! 3. Blocks (step 9 response synthesis), limits (per-window quotas), or
-//!    forwards to the account's chosen upstream (pooled + deduped).
+//! 3. Blocks, limits (per-window quotas), or
+//!    forwards to chosen upstream.
 
 use std::sync::Arc;
 
@@ -22,15 +22,15 @@ use crate::ruleengine::{Decision, evaluate};
 use crate::transport::Transport;
 use crate::upstream::UpstreamPool;
 
-/// The pipeline bundles the policy inputs shared by every query.
+/// Bundles the policy inputs shared by every query.
 pub struct Pipeline {
-    /// Control plane, used for quota writes only; policy reads come from `cache`.
+    /// Control plane, used for quota writes only - policy reads come from `cache`.
     cp: Arc<dyn ControlPlane>,
     categories: Arc<CategoryIndex>,
     upstreams: Arc<UpstreamPool>,
     policy: BlockPolicy,
     cache: Arc<PolicyCache>,
-    /// "dot" or "doh" — used for metric/span labels only.
+    /// "dot" or "doh" - for metric/span labels.
     protocol: &'static str,
 }
 
@@ -54,8 +54,9 @@ impl Pipeline {
         }
     }
 
-    /// The transport an account should use: its cached custom upstream if set,
-    /// else the deployment's default.
+    /// The transport an account should use:
+    /// Cached custom upstream if set,
+    /// else the default.
     fn transport_for(&self, policy: Option<&AccountPolicy>) -> Arc<dyn Transport> {
         match policy.and_then(|p| p.upstream.as_ref()) {
             Some(upstream) => self.upstreams.get(upstream),
@@ -66,14 +67,13 @@ impl Pipeline {
     /// Resolve a single DNS query on behalf of `account`.
     ///
     /// `raw_query` is the wire-format DNS message from the client; the returned
-    /// bytes are the wire-format DNS response to hand back verbatim.
+    /// bytes are the wire-format DNS response to hand back.
     pub async fn handle_query(
         &self,
         account: &str,
         raw_query: &[u8],
     ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         let start = std::time::Instant::now();
-        // Aggregate only: no qname in spans or logs.
         let span = tracing::debug_span!("query", account = %account, protocol = %self.protocol);
         let _enter = span.enter();
 
@@ -157,7 +157,7 @@ pub fn query_name(raw_query: &[u8]) -> Result<String, Box<dyn std::error::Error 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::controlplane::NoopControlPlane;
+    use crate::controlplane::InMemControlPlane;
     use crate::model::{Action, NewRule, NewUpstream, TargetType, UpstreamProtocol, Window};
     use crate::protocol::header::ResultCode;
     use crate::transport::UdpTransport;
@@ -194,7 +194,7 @@ mod tests {
 
     #[tokio::test]
     async fn deny_synthesizes_nxdomain() {
-        let cp = Arc::new(NoopControlPlane::default());
+        let cp = Arc::new(InMemControlPlane::default());
         cp.create_account("1234567890").await.unwrap();
         cp.replace_rules(
             "1234567890",
@@ -223,7 +223,7 @@ mod tests {
 
     #[tokio::test]
     async fn limit_over_quota_blocks() {
-        let cp = Arc::new(NoopControlPlane::default());
+        let cp = Arc::new(InMemControlPlane::default());
         cp.create_account("1234567890").await.unwrap();
         cp.replace_rules(
             "1234567890",
@@ -258,7 +258,7 @@ mod tests {
 
     #[tokio::test]
     async fn transport_for_uses_custom_upstream() {
-        let cp = Arc::new(NoopControlPlane::default());
+        let cp = Arc::new(InMemControlPlane::default());
         cp.create_account("acct").await.unwrap();
         cp.replace_upstreams(
             "acct",

@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use async_trait::async_trait;
 use sqlx::PgPool;
 
-use super::{ControlPlane, CplResult, now, preset_upstreams_default};
+use crate::controlplane::{ControlPlane, CplResult, now, preset_upstreams_default};
 use crate::model::{Account, NewRule, NewUpstream, Rule, Upstream};
 
 pub struct PostgresControlPlane {
@@ -201,13 +201,10 @@ impl ControlPlane for PostgresControlPlane {
             return Ok(false);
         }
         let Some(account_id) = self.account_id(account_number).await? else {
-            // Account has no rules, so a limit rule can't have matched; be lenient.
             return Ok(true);
         };
         let window_start = crate::quota::window_start(now(), window);
 
-        // Atomically increment only while under the limit. No row is returned
-        // once the budget is exhausted.
         let row: Option<(i64,)> = sqlx::query_as(
             "WITH ins AS (
                 INSERT INTO quota_counters (account_id, rule_id, window_start, count)
@@ -424,6 +421,13 @@ impl ControlPlane for PostgresControlPlane {
 
         tx.commit().await?;
         Ok(())
+    }
+
+    async fn last_ingestion(&self) -> CplResult<Option<i64>> {
+        let row: Option<(i64,)> = sqlx::query_as("SELECT MAX(updated_at) FROM domains")
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(row.map(|r| r.0))
     }
 
     async fn snapshot(&self) -> CplResult<HashMap<String, crate::model::AccountPolicy>> {

@@ -17,10 +17,9 @@ use pingora::protocols::tls::TlsRef;
 
 use crate::config::CertsConfig;
 
-/// TLS extension data captured during the server handshake: the client's SNI.
+/// TLS extension data captured during server handshake.
 ///
-/// SNI is the identity for both DoT and DoH, so we record it when the
-/// handshake completes and read it back from the connection's [`SslDigest`].
+/// SNI is identity for DoT and DoH
 #[derive(Clone, Debug)]
 pub struct SniInfo {
     pub sni: String,
@@ -41,7 +40,7 @@ impl TlsAccept for SniCapture {
     }
 }
 
-/// Holds an X509 certificate and private key, generated in memory or loaded from disk.
+/// Holds an X509 cert and pk, generated in memory or loaded from disk.
 pub struct GeneratedCerts {
     pub x509: X509,
     pub pkey: PKey<Private>,

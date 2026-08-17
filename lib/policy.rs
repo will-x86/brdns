@@ -1,7 +1,7 @@
 //! Poll-refreshed policy cache.
 //!
-//! The DNS hot path must not hit Postgres per query. A background poll (see
-//! `bin/s.rs`) refreshes this in-memory snapshot of every account's rules and
+//! Query path must not hit db per query.
+//! Background poll refreshes this snapshot of every account's rules and
 //! upstream; queries read only from here.
 
 use std::collections::HashMap;
@@ -63,12 +63,12 @@ impl PolicyCache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::controlplane::NoopControlPlane;
+    use crate::controlplane::InMemControlPlane;
     use crate::model::{Action, NewRule, TargetType};
 
     #[tokio::test]
     async fn refresh_and_get() {
-        let cp = NoopControlPlane::default();
+        let cp = InMemControlPlane::default();
         cp.create_account("acct").await.unwrap();
         cp.replace_rules(
             "acct",

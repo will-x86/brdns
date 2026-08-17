@@ -13,7 +13,7 @@ use crate::categories::CategoryIndex;
 use crate::certs::GeneratedCerts;
 use crate::config::{ServerConfig, Settings};
 use crate::context::RuntimeContext;
-use crate::controlplane::NoopControlPlane;
+use crate::controlplane::InMemControlPlane;
 use crate::identity::account_from_sni;
 use crate::pipeline::Pipeline;
 use crate::policy::PolicyCache;
@@ -59,7 +59,7 @@ impl ServerApp for DotApp {
         mut session: Stream,
         _shutdown: &ShutdownWatch,
     ) -> Option<Stream> {
-        // SNI is fixed per TLS connection, so resolve the account once.
+        // SNI is fixed per TLS connection.
         let account = self.account_for(&session);
 
         // DoT reuses one connection for many queries, so loop until the client
@@ -111,11 +111,11 @@ pub struct DotReceiver {
 }
 
 impl DotReceiver {
-    /// Convenience: defaults for everything except the listen port.
+    /// Defaults for everything except the listen port.
     pub fn new(port: u16) -> Self {
         let defaults = Settings::default();
         let ctx = Arc::new(RuntimeContext::new(
-            Arc::new(NoopControlPlane::default()),
+            Arc::new(InMemControlPlane::default()),
             Arc::new(CategoryIndex::new()),
             BlockPolicy::default(),
             Arc::new(PolicyCache::new()),
@@ -124,7 +124,7 @@ impl DotReceiver {
             .expect("failed to load/generate certs")
     }
 
-    /// DotReceiver from config plus the shared runtime context.
+    /// DotReceiver from config plus the runtime context.
     pub fn from_config(
         port: u16,
         dot: crate::config::DotConfig,

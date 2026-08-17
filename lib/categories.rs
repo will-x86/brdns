@@ -1,9 +1,4 @@
-//! In-memory domain -> category index.
-//!
-//! Populated from community blocklist feeds (step 7) and consulted by the rule
-//! engine when a rule targets a category. A category match includes the domain
-//! itself and all of its subdomains: listing `youtube.com` in `youtube` also
-//! covers `www.youtube.com` and `i.ytimg.com`.
+//! In-memory domain to category.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
@@ -15,7 +10,7 @@ pub fn normalize_domain(name: &str) -> String {
 
 #[derive(Default)]
 pub struct CategoryIndex {
-    /// domain -> set of categories it belongs to.
+    /// domain to set of categories it belongs to.
     map: RwLock<HashMap<String, HashSet<String>>>,
 }
 
@@ -39,7 +34,7 @@ impl CategoryIndex {
         false
     }
 
-    /// Atomically replace the whole index (after a blocklist refresh).
+    /// Replace the whole index (after a blocklist refresh).
     pub fn replace(&self, map: HashMap<String, HashSet<String>>) {
         let mut guard = self.map.write().expect("category index poisoned");
         *guard = map;

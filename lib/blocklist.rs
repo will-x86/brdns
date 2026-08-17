@@ -1,12 +1,8 @@
 //! Blocklist/category ingestion.
 //!
-//! Community feeds (OISD, Hagezi, StevenBlack, AdGuard) are fetched, parsed
-//! into a `domain -> categories` map, persisted via the control plane, and
-//! loaded into the in-memory [`CategoryIndex`] the rule engine consults.
-//!
-//! License notes for the built-in feeds (reviewed before inclusion):
-//! - OISD          https://oisd.nl — free to use (personal + commercial).
-//! - StevenBlack   hosts — MIT-licensed repo; aggregates lists under their own
+//! License for feeds:
+//! - OISD          https://oisd.nl - free to use
+//! - StevenBlack   hosts - MIT-licensed repo; aggregates lists under their own
 //!   (per-list) licenses.
 //! - Hagezi        GPL-3.0 (https://github.com/hagezi/dns-blocklists).
 //! - AdGuard DNS   GPL-3.0 (https://github.com/AdguardTeam/AdGuardSDNSFilter).
@@ -70,11 +66,7 @@ impl From<&crate::config::FeedConfig> for Feed {
     }
 }
 
-/// Built-in, license-reviewed feeds.
-///
-/// Kept modest (~250k unique domains after dedup) so a small VPS can hold the
-/// in-memory index comfortably. Add category feeds (gambling, social, ...)
-/// via `[blocklist.feeds]`.
+/// Built-in feeds.
 pub fn default_feeds() -> Vec<Feed> {
     vec![
         Feed {
@@ -105,7 +97,7 @@ pub fn default_feeds() -> Vec<Feed> {
     ]
 }
 
-/// Load the persisted `domain -> categories` map from the control plane into
+/// Load the domain to categories map from the control plane into
 /// the in-memory index. Runs at startup so a restart keeps existing data.
 pub async fn load(
     cp: &dyn ControlPlane,
@@ -157,6 +149,10 @@ pub async fn ingest(
     }
 
     let n = merged.len();
+    if n == index.len() {
+        log::info!("blocklist ingestion skipped: {n} domains unchanged");
+        return Ok(n);
+    }
     cp.replace_categories(&merged).await?;
     index.replace(merged);
     Ok(n)

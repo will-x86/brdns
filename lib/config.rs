@@ -29,11 +29,9 @@ pub struct Settings {
 #[serde(default)]
 pub struct ServerConfig {
     /// Base domain used for SNI-based identity.
-    /// An account is the leftmost DNS label, e.g. `1234567890.dns.example.com`.
+    /// An account is the leftmost DNS label
     pub domain: String,
-    /// Account to use when a query has no (or unrecognized) SNI — e.g. plain
-    /// HTTP, or a client that connects by IP. This keeps the service usable
-    /// during rollout; set to empty string to refuse unknown identities instead.
+    /// Account to use when a query has no (or unrecognized) SNI
     pub fallback_account: String,
 }
 
@@ -85,16 +83,16 @@ impl Default for DohConfig {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ControlPlaneConfig {
-    /// Run the axum management API.
+    /// Run the management API
     pub enabled: bool,
-    /// Address the management API listens on.
+    /// Management Api addr
     pub listen_addr: String,
-    /// Postgres URL; when absent, an in-memory control plane is used.
+    /// Postgres URL -- if absent: use in mem storage
     pub database_url: Option<String>,
-    /// Seconds between policy-snapshot refreshes (rules + upstreams).
+    /// Seconds between rules + upstreams refreshes.
     pub policy_refresh_secs: u64,
-    /// Bearer token required by the management API. When absent, the API
-    /// refuses all requests (secure by default).
+    /// Bearer token required by the management API.
+    /// If None: all req's are refused.
     pub api_token: Option<String>,
 }
 
@@ -177,18 +175,18 @@ impl Default for PolicyConfig {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ObservabilityConfig {
-    /// Address for the Prometheus `/metrics` endpoint; empty disables it.
+    /// Address for the Prom `/metrics` endpoint; empty disables it.
     pub metrics_addr: String,
-    /// OTLP HTTP endpoint for traces (e.g. http://localhost:4318/v1/traces);
-    /// absent disables OpenTelemetry export.
+    /// OTLP HTTP endpoint for traces (defaults to http://127.0.0.1:4318/v1/traces);
+    /// `None` disables OpenTelemetry export.
     pub otel_endpoint: Option<String>,
 }
 
 impl Default for ObservabilityConfig {
     fn default() -> Self {
         Self {
-            metrics_addr: "127.0.0.1:9090".into(),
-            otel_endpoint: None,
+            metrics_addr: "0.0.0.0:9091".into(),
+            otel_endpoint: Some("http://127.0.0.1:4318/v1/traces".into()),
         }
     }
 }

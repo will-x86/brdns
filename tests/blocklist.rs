@@ -3,7 +3,7 @@
 
 use brdns::blocklist;
 use brdns::categories::CategoryIndex;
-use brdns::controlplane::{ControlPlane, NoopControlPlane};
+use brdns::controlplane::{ControlPlane, InMemControlPlane};
 
 #[tokio::test]
 async fn ingest_real_feeds() {
@@ -12,7 +12,7 @@ async fn ingest_real_feeds() {
         return;
     }
 
-    let cp = NoopControlPlane::default();
+    let cp = InMemControlPlane::default();
     let index = CategoryIndex::new();
 
     let n = blocklist::ingest(&cp, &index, &blocklist::default_feeds())

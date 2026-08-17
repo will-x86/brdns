@@ -17,7 +17,7 @@ use crate::categories::CategoryIndex;
 use crate::certs::{GeneratedCerts, SniInfo};
 use crate::config::{ServerConfig, Settings};
 use crate::context::RuntimeContext;
-use crate::controlplane::NoopControlPlane;
+use crate::controlplane::InMemControlPlane;
 use crate::identity::account_from_sni;
 use crate::pipeline::Pipeline;
 use crate::policy::PolicyCache;
@@ -34,11 +34,11 @@ pub struct DohReceiver {
 }
 
 impl DohReceiver {
-    /// Convenience: defaults for everything except the listen port.
+    /// Defaults for everything except the listen port.
     pub fn new(port: u16) -> Self {
         let defaults = Settings::default();
         let ctx = Arc::new(RuntimeContext::new(
-            Arc::new(NoopControlPlane::default()),
+            Arc::new(InMemControlPlane::default()),
             Arc::new(CategoryIndex::new()),
             BlockPolicy::default(),
             Arc::new(PolicyCache::new()),
@@ -47,7 +47,7 @@ impl DohReceiver {
             .expect("failed to load/generate certs")
     }
 
-    /// Full control via config struct plus the shared runtime context.
+    /// Config struct plus the runtime context.
     pub fn from_config(
         port: u16,
         doh: crate::config::DohConfig,
@@ -194,8 +194,8 @@ impl super::Receiver for DohReceiver {
 
 /// Pull the DNS query out of a DoH request.
 ///
-/// GET carries it base64url-encoded in the `?dns=` query param; POST carries
-/// the raw message in the body.
+/// GET has base64url-encoded in the `?dns=` query param
+/// POST carries the raw message in the body.
 async fn extract_query(
     session: &mut Session,
 ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
@@ -220,7 +220,7 @@ async fn extract_query(
     Ok(None)
 }
 
-/// Find the raw value of the `dns` query parameter.
+/// Find the value of the `dns` query parameter.
 fn dns_query_param(query: Option<&str>) -> Option<String> {
     let query = query?;
     for pair in query.split('&') {
@@ -231,7 +231,7 @@ fn dns_query_param(query: Option<&str>) -> Option<String> {
     None
 }
 
-/// Minimal RFC 3986 percent-decoding (enough for base64url query params).
+/// Minimal percent-decoding (enough for base64url query params).
 fn percent_decode(input: &str) -> String {
     let bytes = input.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());

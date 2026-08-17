@@ -5,7 +5,7 @@ use brdns::buffer::BytePacketBuffer;
 use brdns::categories::CategoryIndex;
 use brdns::config::Settings;
 use brdns::context::RuntimeContext;
-use brdns::controlplane::{ControlPlane, NoopControlPlane};
+use brdns::controlplane::{ControlPlane, InMemControlPlane};
 use brdns::policy::PolicyCache;
 use brdns::protocol::packet::DnsPacket;
 use brdns::protocol::question::DnsQuestion;
@@ -138,7 +138,7 @@ pub struct DotServer {
 
 impl DotServer {
     pub async fn start(settings: Option<&Settings>) -> Self {
-        Self::start_with(settings, Arc::new(NoopControlPlane::default())).await
+        Self::start_with(settings, Arc::new(InMemControlPlane::default())).await
     }
 
     pub async fn start_with(settings: Option<&Settings>, cp: Arc<dyn ControlPlane>) -> Self {
@@ -204,7 +204,7 @@ pub struct DohServer {
 
 impl DohServer {
     pub async fn start(settings: Option<&Settings>) -> Self {
-        Self::start_with(settings, Arc::new(NoopControlPlane::default())).await
+        Self::start_with(settings, Arc::new(InMemControlPlane::default())).await
     }
 
     pub async fn start_with(settings: Option<&Settings>, cp: Arc<dyn ControlPlane>) -> Self {

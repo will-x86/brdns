@@ -2,7 +2,7 @@
 //! (they need a reachable Postgres instance).
 
 use brdns::controlplane::ControlPlane;
-use brdns::controlplane::postgres::PostgresControlPlane;
+use brdns::controlplane::storage::PostgresControlPlane;
 use brdns::model::{Action, NewRule, NewUpstream, TargetType, UpstreamProtocol, Window};
 
 fn test_url() -> Option<String> {

@@ -1,10 +1,10 @@
-//! Identity extraction for SNI-based accounts.
+//! Identity extraction for SNI.
 //!
 //! Both DoT and DoH identify the caller by the TLS SNI: the account is the
 //! leftmost label of the hostname the client dialed, e.g.
-//! `1234567890.dns.example.com` -> account `1234567890`.
+//! `1234567890.dns.example.com` = acc `1234567890`.
 
-/// Extract an account id from an SNI hostname by stripping the base domain.
+/// Extract an account id from SNI by stripping the base domain.
 ///
 /// Returns `None` when the SNI is empty, equals the base domain itself, has
 /// extra labels, or carries a trailing dot.

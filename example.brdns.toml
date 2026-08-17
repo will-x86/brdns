@@ -5,16 +5,15 @@
 # domain = "dns.example.com"
 # fallback_account = "default"  # used when no/unknown SNI; "" refuses
 
-[control_plane]
-enabled = true # run axum API 
+# [control_plane]
+# enabled = false # run axum API 
 # listen_addr = "127.0.0.1:8080"
-database_url = "postgres://brdns:brdns@127.0.0.1:5432/brdns"  # Postgres-absent = in-memory
+# database_url = "postgres://user:pass@127.0.0.1:5432/brdns"  # Postgres-absent = in-memory
 # policy_refresh_secs = 30      # how often to poll database for rules into into memory
-api_token = "a"
 
-[blocklist]
-enabled = true # fetch + apply community feeds at startup
-refresh_interval_secs = 86400
+# [blocklist]
+# enabled = false               # fetch + apply community feeds at startup
+# refresh_interval_secs = 86400
 # Custom feeds (empty = built-in defaults: OISD, StevenBlack, Hagezi, AdGuard).
 # [[blocklist.feeds]]
 # name = "my-feed"

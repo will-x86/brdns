@@ -49,6 +49,7 @@
             pkgs.cmake # pingora dependancy
             pkgs.knot-dns
             pkgs.bazel_8
+            pkgs.podman-compose
           ];
 
           shellHook = ''

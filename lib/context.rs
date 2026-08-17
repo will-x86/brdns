@@ -1,8 +1,4 @@
-//! Shared runtime context handed to the DNS receivers.
-//!
-//! Bundles the policy inputs every query needs (control plane, category index,
-//! block policy, poll-refreshed cache) so receiver constructors don't grow an
-//! ever-larger parameter list.
+//! Runtime context handed to the DNS receivers.
 
 use std::sync::Arc;
 

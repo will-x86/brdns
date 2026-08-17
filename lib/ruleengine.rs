@@ -1,4 +1,4 @@
-//! Ordered rule evaluation (Pi-hole style): first match wins.
+//! Ordered rule evaluation: first match wins.
 //!
 //! Each account has an ordered list of rules. The engine walks them in order
 //! and returns the decision of the first rule whose target matches the query
@@ -9,7 +9,7 @@ use crate::model::{Action, Rule, TargetType, Window};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Decision {
-    /// Allow the query (also the implicit default when no rule matches).
+    /// Allow the query (default when no rule matches).
     Allow,
     /// Block the query.
     Deny,
@@ -63,7 +63,7 @@ pub fn evaluate(
                 Action::Limit => Decision::Limit {
                     rule_id: rule.id,
                     // A CHECK constraint guarantees these for 'limit' rules in
-                    // Postgres; be lenient here rather than panic.
+                    // Postgres
                     limit_count: rule.limit_count.unwrap_or(0),
                     window: rule.limit_window.unwrap_or(Window::Month),
                 },

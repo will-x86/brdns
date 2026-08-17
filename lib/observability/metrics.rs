@@ -1,9 +1,4 @@
-//! Observability: Prometheus metrics, structured logs, and OpenTelemetry
-//! traces — aggregate only, never query names.
-//!
-//! Metrics are recorded per account (opaque account number, not PII) and per
-//! outcome; no domain/qname ever appears in a metric label, log line, or span
-//! attribute.
+//! Prometheus metrics (aggregate only, never query names).
 
 use axum::{Router, routing::get};
 use once_cell::sync::Lazy;
@@ -12,8 +7,6 @@ use prometheus::{
     register_int_counter_vec, register_int_gauge,
 };
 use std::time::Duration;
-
-use crate::config::ObservabilityConfig;
 
 static QUERIES: Lazy<IntCounterVec> = Lazy::new(|| {
     register_int_counter_vec!(
@@ -113,7 +106,6 @@ pub fn set_upstream_transports(n: i64) {
     UPSTREAM_TRANSPORTS.set(n);
 }
 
-/// Force all metrics to register so they always appear in scrapes.
 fn ensure_registered() {
     let _ = &*QUERIES;
     let _ = &*QUERY_DURATION;
@@ -123,7 +115,6 @@ fn ensure_registered() {
     let _ = &*UPSTREAM_TRANSPORTS;
 }
 
-/// Render all metrics in the Prometheus text exposition format.
 pub fn render() -> String {
     ensure_registered();
     let encoder = TextEncoder::new();
@@ -131,10 +122,6 @@ pub fn render() -> String {
         .encode_to_string(&prometheus::gather())
         .unwrap_or_default()
 }
-
-// ---------------------------------------------------------------------------
-// Metrics HTTP endpoint
-// ---------------------------------------------------------------------------
 
 pub fn metrics_router() -> Router {
     Router::new().route("/metrics", get(metrics_handler))
@@ -147,53 +134,6 @@ async fn metrics_handler() -> (axum::http::StatusCode, String) {
 pub async fn serve_metrics(addr: &str) -> std::io::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, metrics_router()).await
-}
-
-// ---------------------------------------------------------------------------
-// Tracing / OpenTelemetry
-// ---------------------------------------------------------------------------
-
-/// Initialize structured logs (+ optional OTLP trace export). Also routes the
-/// existing `log`-crate macros into `tracing`.
-pub fn init(cfg: &ObservabilityConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use tracing_subscriber::EnvFilter;
-    use tracing_subscriber::layer::SubscriberExt;
-    use tracing_subscriber::util::SubscriberInitExt;
-
-    // Note: `try_init` below also installs the `log` -> `tracing` bridge (the
-    // `tracing-log` feature is enabled), so do NOT call `LogTracer::init()`
-    // here — that would conflict and fail the second registration.
-
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let fmt_layer = tracing_subscriber::fmt::layer().json();
-
-    let registry = tracing_subscriber::registry().with(filter).with(fmt_layer);
-
-    if let Some(endpoint) = &cfg.otel_endpoint {
-        use opentelemetry::trace::TracerProvider as _;
-        use opentelemetry_otlp::{SpanExporter, WithExportConfig};
-        use opentelemetry_sdk::Resource;
-        use opentelemetry_sdk::trace::SdkTracerProvider;
-
-        let exporter = SpanExporter::builder()
-            .with_http()
-            .with_endpoint(endpoint)
-            .build()?;
-        let provider = SdkTracerProvider::builder()
-            .with_batch_exporter(exporter)
-            .with_resource(Resource::builder().with_service_name("brdns").build())
-            .build();
-        let tracer = provider.tracer("brdns");
-        // Keep the provider (and its background batch exporter) alive.
-        opentelemetry::global::set_tracer_provider(provider);
-        let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-
-        registry.with(telemetry).try_init()?;
-    } else {
-        registry.try_init()?;
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -215,7 +155,6 @@ mod tests {
         assert!(text.contains("brdns_category_domains 42"));
         assert!(text.contains("brdns_policy_accounts 3"));
         assert!(text.contains("brdns_upstream_transports 2"));
-        // Aggregate only: never a qname label.
         assert!(!text.contains("example.com"));
     }
 }

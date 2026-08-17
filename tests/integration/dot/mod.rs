@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::DotServer;
 use brdns::categories::CategoryIndex;
 use brdns::config::{BlockResponse, Settings};
-use brdns::controlplane::{ControlPlane, NoopControlPlane};
+use brdns::controlplane::{ControlPlane, InMemControlPlane};
 use brdns::model::{Action, NewRule, TargetType};
 use brdns::protocol::header::ResultCode;
 use brdns::protocol::record::{DnsRecord, QueryType};
@@ -50,7 +50,7 @@ async fn aaaa_query() {
 async fn deny_rule_synthesizes_nxdomain() {
     // SNI is "localhost", which does not match the base domain, so the server
     // uses the fallback account "default".
-    let cp = NoopControlPlane::default();
+    let cp = InMemControlPlane::default();
     cp.create_account("default").await.unwrap();
     cp.replace_rules(
         "default",
@@ -75,7 +75,7 @@ async fn deny_rule_synthesizes_nxdomain() {
 
 #[tokio::test]
 async fn deny_category_blocks_domains_in_category() {
-    let cp = NoopControlPlane::default();
+    let cp = InMemControlPlane::default();
     cp.create_account("default").await.unwrap();
     cp.replace_rules(
         "default",
@@ -108,7 +108,7 @@ async fn null_block_response_returns_zero_addr() {
     let mut settings = Settings::default();
     settings.policy.block_response = BlockResponse::Null;
 
-    let cp = NoopControlPlane::default();
+    let cp = InMemControlPlane::default();
     cp.create_account("default").await.unwrap();
     cp.replace_rules(
         "default",
