@@ -16,14 +16,12 @@ Both DoT and DoH read the TLS **SNI**
 - DoH endpoint: `https://{account}.dns.yourdomain.com/dns-query`
 - DoT endpoint: `{account}.dns.yourdomain.com:853`
 
-## Quick start (local, in-memory)
+## Quick start
 
 ```bash
 cargo run --bin s
-
-# Query via DoH
-cargo run --bin g doh -d google.com
 ```
+
 
 ## Management
 
@@ -36,7 +34,7 @@ listen_addr = "127.0.0.1:8080"
 api_token = "uh openssl rand -hex 32 i guess"   # or BRDNS__CONTROL_PLANE__API_TOKEN
 ```
 
-Then manage policy with `brdns-admin`:
+Then manage with `brdns-admin`:
 
 ```bash
 export BRDNS_ADMIN_TOKEN=your-secret-token
@@ -47,7 +45,7 @@ brdns-admin account
 # Block ads by category
 brdns-admin rules 1234567890123456 add --action deny --target category ads
 
-# Limit YouTube to 10,000 queries/month
+# Limit yt to 10,000 queries/month
 brdns-admin rules 1234567890123456 add --action limit --target category youtube \
     --limit 10000 --window month
 
@@ -73,7 +71,7 @@ Rules are evaluated in order, first match wins
 ## Configuration
 
 All keys optional
-`brdns.toml` or `BRDNS_*` env vars. See `brdns.toml` for example
+`brdns.toml` or `BRDNS_*` env vars. See `example.brdns.toml` for example
 
 ## Observability
 

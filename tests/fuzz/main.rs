@@ -7,12 +7,11 @@ use brdns::protocol::question::DnsQuestion;
 use brdns::protocol::record::{DnsRecord, QueryType};
 
 use fuzztest::domains::arbitrary::Arbitrary;
-use fuzztest::domains::containers::ContainerDomain;
 use fuzztest::domains::containers::VecOf;
 use fuzztest::fuzztest;
 
 fn bytes_domain() -> VecOf<Arbitrary<u8>> {
-    VecOf::new(Arbitrary::<u8>::default()).with_max_len(4096)
+    VecOf::new(Arbitrary::<u8>::default())
 }
 
 #[fuzztest(data = bytes_domain())]

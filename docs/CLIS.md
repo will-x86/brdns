@@ -26,3 +26,11 @@ nc -u 8.8.8.8 53 < query_packet.txt > response_packet.txt
 ```
 hexdump -C response_packet.txt
 ```
+
+
+
+## kdig my baby
+```
+kdig +tls -p 8853 @127.0.0.1 youtube.com +tls-sni="4789191065911556.dns.example.com"
+```
+
