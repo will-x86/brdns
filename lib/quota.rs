@@ -17,7 +17,10 @@ pub fn window_start(now: i64, window: Window) -> i64 {
     match window {
         Window::Hour => (start_of_day(dt) + Duration::hours(dt.hour() as i64)).timestamp(),
         Window::Day => start_of_day(dt).timestamp(),
-        Window::Week => start_of_day(dt - Duration::days(dt.weekday().num_days_from_monday() as i64)).timestamp(),
+        Window::Week => {
+            start_of_day(dt - Duration::days(dt.weekday().num_days_from_monday() as i64))
+                .timestamp()
+        }
         Window::Month => start_of_day(dt.with_day(1).unwrap()).timestamp(),
     }
 }
