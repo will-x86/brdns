@@ -1,15 +1,45 @@
+use std::any::Any;
+use std::sync::Arc;
+
+use async_trait::async_trait;
 use openssl::asn1::Asn1Time;
 use openssl::bn::{BigNum, MsbOption};
 use openssl::hash::MessageDigest;
 use openssl::pkey::{PKey, Private};
 use openssl::rsa::Rsa;
-use openssl::ssl::{SslAcceptor, SslMethod};
+use openssl::ssl::{NameType, SslAcceptor, SslMethod};
 use openssl::x509::extension::{BasicConstraints, SubjectAlternativeName};
 use openssl::x509::{X509, X509NameBuilder};
 
 use pingora::listeners::tls::TlsSettings;
+use pingora::listeners::{TlsAccept, TlsAcceptCallbacks};
+use pingora::protocols::tls::TlsRef;
 
 use crate::config::CertsConfig;
+
+/// TLS extension data captured during the server handshake: the client's SNI.
+///
+/// SNI is the identity for both DoT and DoH, so we record it when the
+/// handshake completes and read it back from the connection's [`SslDigest`].
+#[derive(Clone, Debug)]
+pub struct SniInfo {
+    pub sni: String,
+}
+
+struct SniCapture;
+
+#[async_trait]
+impl TlsAccept for SniCapture {
+    async fn handshake_complete_callback(
+        &self,
+        ssl: &TlsRef,
+    ) -> Option<Arc<dyn Any + Send + Sync>> {
+        let sni = ssl.servername(NameType::HOST_NAME)?;
+        Some(Arc::new(SniInfo {
+            sni: sni.to_string(),
+        }))
+    }
+}
 
 /// Holds an X509 certificate and private key, generated in memory or loaded from disk.
 pub struct GeneratedCerts {
@@ -140,6 +170,18 @@ impl GeneratedCerts {
         builder.set_private_key(&self.pkey)?;
         builder.set_certificate(&self.x509)?;
         Ok(TlsSettings::from(builder))
+    }
+
+    /// Like [`Self::tls_settings`], but also records the client SNI into the
+    /// connection's TLS digest so the HTTP layer can identify the account.
+    pub fn tls_settings_with_sni(
+        &self,
+    ) -> Result<TlsSettings, Box<dyn std::error::Error + Send + Sync>> {
+        let callbacks: TlsAcceptCallbacks = Box::new(SniCapture);
+        let mut settings = TlsSettings::with_callbacks(callbacks)?;
+        settings.set_private_key(&self.pkey)?;
+        settings.set_certificate(&self.x509)?;
+        Ok(settings)
     }
 }
 

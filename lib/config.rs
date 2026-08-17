@@ -6,13 +6,44 @@ use std::path::PathBuf;
 #[serde(default)]
 pub struct Settings {
     #[serde(default)]
+    pub server: ServerConfig,
+    #[serde(default)]
     pub dot: DotConfig,
     #[serde(default)]
     pub doh: DohConfig,
     #[serde(default)]
+    pub control_plane: ControlPlaneConfig,
+    #[serde(default)]
+    pub blocklist: BlocklistConfig,
+    #[serde(default)]
+    pub policy: PolicyConfig,
+    #[serde(default)]
+    pub observability: ObservabilityConfig,
+    #[serde(default)]
     pub udp: UdpConfig,
     #[serde(default)]
     pub certs: CertsConfig,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
+pub struct ServerConfig {
+    /// Base domain used for SNI-based identity.
+    /// An account is the leftmost DNS label, e.g. `1234567890.dns.example.com`.
+    pub domain: String,
+    /// Account to use when a query has no (or unrecognized) SNI — e.g. plain
+    /// HTTP, or a client that connects by IP. This keeps the service usable
+    /// during rollout; set to empty string to refuse unknown identities instead.
+    pub fallback_account: String,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            domain: "dns.example.com".into(),
+            fallback_account: "default".into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -53,6 +84,117 @@ impl Default for DohConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
+pub struct ControlPlaneConfig {
+    /// Run the axum management API.
+    pub enabled: bool,
+    /// Address the management API listens on.
+    pub listen_addr: String,
+    /// Postgres URL; when absent, an in-memory control plane is used.
+    pub database_url: Option<String>,
+    /// Seconds between policy-snapshot refreshes (rules + upstreams).
+    pub policy_refresh_secs: u64,
+    /// Bearer token required by the management API. When absent, the API
+    /// refuses all requests (secure by default).
+    pub api_token: Option<String>,
+}
+
+impl Default for ControlPlaneConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            listen_addr: "127.0.0.1:8080".into(),
+            database_url: None,
+            policy_refresh_secs: 30,
+            api_token: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
+pub struct BlocklistConfig {
+    /// Fetch and apply community feeds at startup.
+    pub enabled: bool,
+    /// Seconds between feed refreshes (used by the poll loop).
+    pub refresh_interval_secs: u64,
+    /// Custom feeds; empty = built-in defaults.
+    pub feeds: Vec<FeedConfig>,
+}
+
+impl Default for BlocklistConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            refresh_interval_secs: 86400,
+            feeds: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FeedConfig {
+    pub name: String,
+    pub url: String,
+    /// "plain" | "hosts" | "adblock".
+    pub format: String,
+    pub categories: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BlockResponse {
+    /// rcode NXDOMAIN, no answers.
+    Nxdomain,
+    /// rcode REFUSED.
+    Refused,
+    /// NOERROR + 0.0.0.0 / :: answer.
+    Null,
+    /// NOERROR + custom A/AAAA answer.
+    Custom,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
+pub struct PolicyConfig {
+    /// How `deny` rules (and over-quota `limit` rules) answer.
+    pub block_response: BlockResponse,
+    /// IPv4 returned for [`BlockResponse::Custom`].
+    pub custom_ipv4: String,
+    /// IPv6 returned for [`BlockResponse::Custom`].
+    pub custom_ipv6: String,
+}
+
+impl Default for PolicyConfig {
+    fn default() -> Self {
+        Self {
+            block_response: BlockResponse::Nxdomain,
+            custom_ipv4: "0.0.0.0".into(),
+            custom_ipv6: "::".into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
+pub struct ObservabilityConfig {
+    /// Address for the Prometheus `/metrics` endpoint; empty disables it.
+    pub metrics_addr: String,
+    /// OTLP HTTP endpoint for traces (e.g. http://localhost:4318/v1/traces);
+    /// absent disables OpenTelemetry export.
+    pub otel_endpoint: Option<String>,
+}
+
+impl Default for ObservabilityConfig {
+    fn default() -> Self {
+        Self {
+            metrics_addr: "127.0.0.1:9090".into(),
+            otel_endpoint: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default)]
 pub struct UdpConfig {
     pub server: String,
     pub port: u16,
@@ -67,7 +209,7 @@ impl Default for UdpConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 #[serde(default)]
 pub struct CertsConfig {
     /// Paths to existing cert/key files. If both provided, load from disk.
@@ -82,17 +224,6 @@ pub struct CertsConfig {
     /// Generation parameters; used only when cert_path/key_path are None.
     #[serde(default)]
     pub generate: CertGenConfig,
-}
-
-impl Default for CertsConfig {
-    fn default() -> Self {
-        Self {
-            cert_path: None,
-            key_path: None,
-            in_mem: false,
-            generate: CertGenConfig::default(),
-        }
-    }
 }
 
 /// Parameters for auto-generating a self-signed certificate.

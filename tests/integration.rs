@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
+use brdns::blocking::BlockPolicy;
 use brdns::buffer::BytePacketBuffer;
+use brdns::categories::CategoryIndex;
 use brdns::config::Settings;
+use brdns::context::RuntimeContext;
+use brdns::controlplane::{ControlPlane, NoopControlPlane};
+use brdns::policy::PolicyCache;
 use brdns::protocol::packet::DnsPacket;
 use brdns::protocol::question::DnsQuestion;
 use brdns::protocol::record::QueryType;
@@ -133,10 +138,33 @@ pub struct DotServer {
 
 impl DotServer {
     pub async fn start(settings: Option<&Settings>) -> Self {
+        Self::start_with(settings, Arc::new(NoopControlPlane::default())).await
+    }
+
+    pub async fn start_with(settings: Option<&Settings>, cp: Arc<dyn ControlPlane>) -> Self {
+        Self::start_full(settings, cp, Arc::new(CategoryIndex::new())).await
+    }
+
+    pub async fn start_full(
+        settings: Option<&Settings>,
+        cp: Arc<dyn ControlPlane>,
+        categories: Arc<CategoryIndex>,
+    ) -> Self {
         let mut settings = settings.cloned().unwrap_or_default();
         settings.certs.in_mem = true; // tests use in-memory certs
+        let cache = Arc::new(PolicyCache::new());
+        cache.refresh(cp.as_ref()).await.unwrap();
+        let ctx = Arc::new(RuntimeContext::new(
+            cp,
+            categories,
+            BlockPolicy::from_config(&settings.policy),
+            cache,
+        ));
         let port = spawn_server(move |p| {
-            Box::new(DotReceiver::from_config(p, settings.dot, &settings.certs).unwrap())
+            Box::new(
+                DotReceiver::from_config(p, settings.dot, &settings.server, &settings.certs, ctx)
+                    .unwrap(),
+            )
         })
         .await;
         wait_for_port(port).await;
@@ -176,8 +204,28 @@ pub struct DohServer {
 
 impl DohServer {
     pub async fn start(settings: Option<&Settings>) -> Self {
-        let settings = settings.cloned().unwrap_or_default();
-        let port = spawn_server(move |p| Box::new(DohReceiver::from_config(p, settings.doh))).await;
+        Self::start_with(settings, Arc::new(NoopControlPlane::default())).await
+    }
+
+    pub async fn start_with(settings: Option<&Settings>, cp: Arc<dyn ControlPlane>) -> Self {
+        let mut settings = settings.cloned().unwrap_or_default();
+        settings.certs.in_mem = true; // tests use in-memory certs
+        let categories = Arc::new(CategoryIndex::new());
+        let cache = Arc::new(PolicyCache::new());
+        cache.refresh(cp.as_ref()).await.unwrap();
+        let ctx = Arc::new(RuntimeContext::new(
+            cp,
+            categories,
+            BlockPolicy::from_config(&settings.policy),
+            cache,
+        ));
+        let port = spawn_server(move |p| {
+            Box::new(
+                DohReceiver::from_config(p, settings.doh, &settings.server, &settings.certs, ctx)
+                    .unwrap(),
+            )
+        })
+        .await;
         wait_for_port(port).await;
         Self { port }
     }
@@ -188,9 +236,12 @@ impl DohServer {
         qtype: QueryType,
     ) -> Result<DnsPacket, Box<dyn std::error::Error + Send + Sync>> {
         let q = build_query(domain, qtype);
-        let client = reqwest::Client::new();
+        // DoH now serves over HTTPS; accept the self-signed test cert.
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()?;
         let encoded = base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, &q);
-        let url = format!("http://127.0.0.1:{}/dns-query", self.port);
+        let url = format!("https://localhost:{}/dns-query", self.port);
 
         let bytes = client
             .get(&url)

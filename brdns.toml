@@ -1,5 +1,35 @@
 # brdns configuration - all keys optional, defaults shown
 
+# [server]
+# SNI-based identity: the account is the leftmost label of the dialed hostname.
+# domain = "dns.example.com"
+# fallback_account = "default"  # used when no/unknown SNI; "" refuses
+
+# [control_plane]
+# enabled = false               # run the axum management API
+# listen_addr = "127.0.0.1:8080"
+# database_url = "postgres://user:pass@127.0.0.1:5432/brdns"  # Postgres; absent = in-memory
+# policy_refresh_secs = 30      # how often to poll rules/upstreams into memory
+
+# [blocklist]
+# enabled = false               # fetch + apply community feeds at startup
+# refresh_interval_secs = 86400
+# Custom feeds (empty = built-in defaults: OISD, StevenBlack, Hagezi, AdGuard).
+# [[blocklist.feeds]]
+# name = "my-feed"
+# url = "https://example.com/list.txt"
+# format = "plain"              # plain | hosts | adblock
+# categories = ["ads"]
+
+# [policy]
+# block_response = "nxdomain"    # nxdomain | refused | null | custom
+# custom_ipv4 = "0.0.0.0"        # used when block_response = "custom"
+# custom_ipv6 = "::"
+
+# [observability]
+# metrics_addr = "127.0.0.1:9090"  # Prometheus /metrics; "" disables
+# otel_endpoint = "http://localhost:4318/v1/traces"  # OTLP HTTP traces (optional)
+
 # [dot]
 # listen_port = 8853
 # upstream_host = "1.1.1.1"

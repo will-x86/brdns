@@ -170,6 +170,16 @@ impl DnsRecord {
                     buffer.write_u8(octet)?;
                 }
             }
+            Self::AAAA { domain, addr, ttl } => {
+                buffer.write_qname(domain)?;
+                buffer.write_u16(QueryType::AAAA.to_num())?;
+                buffer.write_u16(1)?;
+                buffer.write_u32(*ttl)?;
+                buffer.write_u16(16)?;
+                for octet in addr.octets() {
+                    buffer.write_u8(octet)?;
+                }
+            }
             Self::CNAME { domain, host, ttl } => {
                 buffer.write_qname(domain)?;
                 buffer.write_u16(QueryType::CNAME.to_num())?;

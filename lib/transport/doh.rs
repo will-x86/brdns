@@ -8,15 +8,23 @@ pub struct DohTransport {
 }
 
 impl DohTransport {
-    pub fn new(url: impl Into<String>) -> Self {
+    /// Build a DoH transport to `host` (used for SNI/URL), optionally pinning
+    /// the connection to `addr` (`IP:port`) so upstream presets can bypass
+    /// DNS and connect to a known resolver IP.
+    pub fn new(host: &str, port: u16, addr: Option<&str>) -> Self {
+        let url = format!("https://{host}:{port}/dns-query");
+        let mut builder = reqwest::Client::builder();
+        if let Some(addr) = addr.and_then(|a| a.parse::<std::net::SocketAddr>().ok()) {
+            builder = builder.resolve(host, addr);
+        }
         Self {
-            url: url.into(),
-            client: reqwest::Client::new(),
+            url,
+            client: builder.build().expect("failed to build reqwest client"),
         }
     }
 
     pub fn from_config(c: &crate::config::DohConfig) -> Self {
-        Self::new(format!("https://{}/dns-query", c.upstream_host))
+        Self::new(&c.upstream_host, 443, Some(&c.upstream_addr))
     }
 }
 
